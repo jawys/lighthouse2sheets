@@ -2,5 +2,8 @@
 	"name": "lighthouse2sheets",
 	"version": "0.0.1",
 	"license": "UNLICENSED",
-	"private": true
+	"private": true,
+	"devDependencies": {
+		"lighthouse": "^3.2.1"
+	}
 }
