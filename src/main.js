@@ -22,7 +22,7 @@ function harakiri(error) {
  * @param {string} prompt The prompt to show to the user.
  * @returns The code entered by the user as `Promise<string>`.
  */
-async function readCode(prompt) {
+async function readInput(prompt) {
 	const readline = createInterface(process.stdin, process.stdout);
 	return new Promise((resolve) => {
 		readline.question(prompt, (answer) => {
@@ -77,7 +77,7 @@ async function getNewTokens(oAuth2Client) {
 		scope: SCOPES,
 	});
 	console.log('Authorize me by visiting this url:', authUrl);
-	const code = await readCode('Enter the retrieved code here: ');
+	const code = await readInput('Enter the retrieved code here: ');
 	try {
 		const { tokens } = await oAuth2Client.getToken(code);
 		// Store the tokens to disk for later program executions
@@ -187,7 +187,9 @@ export default async function main() {
 		// Authorize a client with credentials, then call the Google Sheets API.
 		const oAuth2Client = await authorize(credentials);
 
-		const [spreadsheetId, range] = ['1608q3JwkMDaWndb9cBTJ_ACcgt5DvxS7oy6LDNu1fhg', 'A2:Z32'];
+		const [spreadsheetId, defaultRange] = ['1608q3JwkMDaWndb9cBTJ_ACcgt5DvxS7oy6LDNu1fhg', 'A2:Z101'];
+		// Use range given by user or use default
+		const range = (await readInput(`Specify values range of spreadsheets [${ defaultRange }]: `)) || defaultRange;
 
 		// Edit sheet via API with authorized client
 		const readResult = await readSheet(oAuth2Client, spreadsheetId, range);
