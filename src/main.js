@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'fs';
 import { google } from 'googleapis';
 import { createInterface } from 'readline';
 import launchChromeAndRunLighthouse from './launchChromeAndRunLighthouse';
+import categorieFilter from './util/categories';
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
@@ -62,7 +63,7 @@ async function storeTokens(tokens) {
 }
 
 function prependErrMsg(error, message) {
-	error.message = `${ message }:\n${ error.message }`;
+	error.message = `${message}:\n${error.message}`;
 }
 
 /**
@@ -156,11 +157,11 @@ async function getLighthouseResults(rows) {
 			// Check columns A and B, which correspond to indices 0 and 1.
 			const [url, result] = row;
 			if (!result) {
-				console.log(`found nothing for "${ url }" – getting lighthouse result…`);
-				const lhr = await launchChromeAndRunLighthouse(url);
-				row[1] = lhr;
+				console.log(`found nothing for "${url}" – getting lighthouse result…`);
+				const report = await launchChromeAndRunLighthouse(url);
+				row[1] = report;
 			} else {
-				console.log(`${ url } has already a result.`);
+				console.log(`${url} has already a result.`);
 			}
 			// console.log({ row, i, a });
 			return a;
@@ -173,11 +174,40 @@ async function filterRows(rows) {
 	return rows.map((row) => {
 		const results = row.pop();
 		if (typeof results === 'object') {
-			const { categories } = results;
-			Object.keys(categories).map((key) => row.push(JSON.stringify(categories[key])));
+			const { audits, categories } = results;
+			Object.keys(categories)
+				// filter wanted categories
+				.filter((key) => categorieFilter.indexOf(key) > -1)
+				// push results to row array
+				.forEach((category) => {
+					categories[category].auditRefs.forEach((auditRef) => {
+						const item = {
+							id: auditRef.id,
+							title: audits[auditRef.id].title,
+							score: audits[auditRef.id].score,
+							rawValue: audits[auditRef.id].rawValue,
+							displayValue: audits[auditRef.id].displayValue,
+						};
+						row.push(JSON.stringify(item));
+					});
+				});
 		}
 		return row;
 	});
+}
+
+async function generateHeader(rows) {
+	const headlines = [['']];
+	if (rows) {
+		const row = rows[0];
+		row.forEach((value, i) => {
+			if (i > 0) {
+				headlines[0].push(JSON.parse(value).title);
+			}
+		});
+	}
+
+	return headlines;
 }
 
 export default async function main() {
@@ -187,9 +217,9 @@ export default async function main() {
 		// Authorize a client with credentials, then call the Google Sheets API.
 		const oAuth2Client = await authorize(credentials);
 
-		const [spreadsheetId, defaultRange] = ['1608q3JwkMDaWndb9cBTJ_ACcgt5DvxS7oy6LDNu1fhg', 'A2:Z101'];
+		const [spreadsheetId, defaultRange] = ['1608q3JwkMDaWndb9cBTJ_ACcgt5DvxS7oy6LDNu1fhg', 'A2:ZZ101'];
 		// Use range given by user or use default
-		const range = (await readInput(`Specify values range of spreadsheets [${ defaultRange }]: `)) || defaultRange;
+		const range = (await readInput(`Specify values range of spreadsheets [${defaultRange}]: `)) || defaultRange;
 
 		// Edit sheet via API with authorized client
 		const readResult = await readSheet(oAuth2Client, spreadsheetId, range);
@@ -199,21 +229,13 @@ export default async function main() {
 		}
 		rows = await getLighthouseResults(rows);
 
-		// console.log(JSON.stringify(rows, null, 2));
-
 		// Filter results
 		rows = await filterRows(rows);
 
-		// console.log(JSON.stringify(rows, null, 2));
-
-		const {
-			status, statusText, headers, config, request, data
-		} = await updateSheet(
-			oAuth2Client,
-			spreadsheetId,
-			range,
-			rows
-		);
+		const headlines = await generateHeader(rows);
+		await updateSheet(oAuth2Client, spreadsheetId, 'A1:ZZ1', headlines);
+		// eslint-disable-next-line
+		const { data } = await updateSheet(oAuth2Client, spreadsheetId, range, rows);
 		// Print update result
 		console.log('Update results:');
 		// eslint-disable-next-line no-restricted-syntax

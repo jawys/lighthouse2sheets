@@ -14,3 +14,6 @@ jspm_packages/
 
 # dist
 dist
+
+#app
+token.json

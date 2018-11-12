@@ -5,6 +5,7 @@ module.exports = {
 	},
 	extends: ['airbnb-base'],
 	rules: {
+		'max-len': [1, 120, 4],
 		'arrow-parens': 0,
 		'comma-dangle': 0,
 		indent: [2, 'tab'],
@@ -15,6 +16,5 @@ module.exports = {
 		'no-unused-vars': 1,
 		quotes: [2, 'single'],
 		semi: [2, 'always'],
-		'template-curly-spacing': [2, 'always'],
 	},
 };

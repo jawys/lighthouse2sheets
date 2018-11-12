@@ -10,5 +10,5 @@ export default async function launchChromeAndRunLighthouse(url, opts = optsDefau
 	opts.port = chrome.port;
 	const results = await lighthouse(url, opts, config);
 	await chrome.kill();
-	return results.lhr;
+	return JSON.parse(results.report);
 }
