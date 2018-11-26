@@ -6,9 +6,17 @@ const optsDefault = {
 };
 
 export default async function launchChromeAndRunLighthouse(url, opts = optsDefault, config = null) {
-	const chrome = await launch({ chromeFlags: opts.chromeFlags });
-	opts.port = chrome.port;
-	const results = await lighthouse(url, opts, config);
-	await chrome.kill();
-	return JSON.parse(results.report);
+	try {
+		const chrome = await launch({ chromeFlags: opts.chromeFlags });
+		opts.port = chrome.port;
+		const results = await lighthouse(url, opts, config);
+		try {
+			await chrome.kill();
+		} catch (e) {
+			console.log(e);
+		}
+		return JSON.parse(results.report);
+	} catch (e) {
+		throw e;
+	}
 }

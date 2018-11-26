@@ -236,6 +236,36 @@ export default async function main() {
 		await updateSheet(oAuth2Client, spreadsheetId, 'A1:ZZ1', headlines);
 		// eslint-disable-next-line
 		const { data } = await updateSheet(oAuth2Client, spreadsheetId, range, rows);
+
+		// eslint-disable-next-line
+		const rawValues = rows.map((row) => {
+			return row.map((value, i) => {
+				if (!value.startsWith('http')) {
+					if (JSON.parse(value).rawValue === null) {
+						return 'null';
+					}
+					return JSON.parse(value).rawValue;
+				}
+				return value;
+			});
+		});
+
+		// eslint-disable-next-line
+		const scoreValues = rows.map((row) => {
+			return row.map((value, i) => {
+				if (!value.startsWith('http')) {
+					if (JSON.parse(value).score === null) {
+						return 'null';
+					}
+					return JSON.parse(value).score;
+				}
+				return value;
+			});
+		});
+
+		const { data2 } = await updateSheet(oAuth2Client, spreadsheetId, `'values'!${range}`, rawValues);
+
+		const { data3 } = await updateSheet(oAuth2Client, spreadsheetId, `'score'!${range}`, scoreValues);
 		// Print update result
 		console.log('Update results:');
 		// eslint-disable-next-line no-restricted-syntax
